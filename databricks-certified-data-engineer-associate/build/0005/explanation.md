@@ -1,0 +1,1 @@
+The `VACUUM` command physically removes old files that are no longer needed for time travel, based on the retention period.

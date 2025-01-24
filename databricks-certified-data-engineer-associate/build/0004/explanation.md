@@ -1,0 +1,1 @@
+Databricks Workflows allows you to define pipelines with multiple tasks (e.g., notebooks, SQL queries) and manage dependencies between them.

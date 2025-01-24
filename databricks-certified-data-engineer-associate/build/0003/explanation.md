@@ -1,0 +1,1 @@
+Watermarking ensures that late data beyond the specified delay threshold (10 minutes here) is ignored during processing.

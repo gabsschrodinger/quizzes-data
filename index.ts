@@ -1,11 +1,26 @@
 import * as fs from "fs";
-import * as path from "path";
 
 interface TempMetadata {
   [key: string]: string;
 }
 
-function getMetadataFromMDContent(content: string[]) {
+interface ProcessedQuestion {
+  metadata: QuestionMetadata;
+  question: string;
+  correctAnswers: string[];
+  incorrectAnswers: string[];
+  explanation: string;
+}
+
+type QuestionMetadata = {
+  id: string;
+  topic: string;
+  subtopic: string;
+  amountCorrect: number;
+  amountIncorrect: number;
+};
+
+function getMetadataFromMDContent(content: string[]): QuestionMetadata {
   const metadataSection = content.filter((section) =>
     section.startsWith("## Metadata")
   )[0];
@@ -31,7 +46,13 @@ function getMetadataFromMDContent(content: string[]) {
     }
   }
 
-  console.log(metadataContent);
+  return {
+    id: metadataContent.id,
+    topic: metadataContent.topic,
+    subtopic: metadataContent.subtopic,
+    amountCorrect: parseInt(metadataContent.amountCorrect),
+    amountIncorrect: parseInt(metadataContent.amountIncorrect),
+  };
 }
 
 function getQuestionFromMDContent(content: string[]): string {
@@ -64,7 +85,18 @@ function getExplanationFromMDContent(content: string[]): string {
   return explanationLines.join("\n\n");
 }
 
-function getCorrectAnswers(content: string[]) {
+function getEachAnswer(answers: string[]): string[] {
+  return answers.map((answer) => {
+    const adjustedAnswer = answer
+      .split("\n")
+      .map((line) => line.replace("\r", ""))
+      .filter((line) => line != "");
+    adjustedAnswer.shift();
+    return adjustedAnswer.join("\n");
+  });
+}
+
+function getCorrectAnswers(content: string[]): string[] {
   const answersSection = content.filter((section) =>
     section.startsWith("Answers:\r\n")
   )[0];
@@ -73,24 +105,111 @@ function getCorrectAnswers(content: string[]) {
     .split(/\n### /)
     .filter((section) => section.startsWith("Correct answers:\r\n"))[0];
 
-  const correctAnswersLines = correctAnswersSection
-    .split("\n")
-    .map((line) => line.replace("\r", ""))
-    .filter((line) => line != "");
+  const correctAnswers = correctAnswersSection.split(/\n#### /);
+  correctAnswers.shift();
 
-  correctAnswersLines.shift();
-
-  console.log(correctAnswersLines);
+  return getEachAnswer(correctAnswers);
 }
 
-function readAndParseMDFile(path: string): string[] {
+function getIncorrectAnswers(content: string[]): string[] {
+  const answersSection = content.filter((section) =>
+    section.startsWith("Answers:\r\n")
+  )[0];
+
+  const correctAnswersSection = answersSection
+    .split(/\n### /)
+    .filter((section) => section.startsWith("Incorrect answers:\r\n"))[0];
+
+  const correctAnswers = correctAnswersSection.split(/\n#### /);
+  correctAnswers.shift();
+
+  return getEachAnswer(correctAnswers);
+}
+
+function readQuestion(path: string): string[] {
   const fileContent = fs.readFileSync(path, "utf-8");
 
   return fileContent.split(/\n## /);
 }
 
-const result = readAndParseMDFile(
-  "./databricks-certified-data-engineer-associate/full/0001.md"
-);
+function processQuestion(question: string[]): ProcessedQuestion {
+  return {
+    metadata: getMetadataFromMDContent(question),
+    question: getQuestionFromMDContent(question),
+    correctAnswers: getCorrectAnswers(question),
+    incorrectAnswers: getIncorrectAnswers(question),
+    explanation: getExplanationFromMDContent(question),
+  };
+}
 
-getCorrectAnswers(result);
+function writeQuestion(question: ProcessedQuestion, basePath: string): void {
+  // create folder for the question
+  fs.mkdirSync(`${basePath}/${question.metadata.id}`);
+
+  // write question file
+  fs.writeFileSync(
+    `${basePath}/${question.metadata.id}/question.md`,
+    question.question
+  );
+
+  // write explanation file
+  fs.writeFileSync(
+    `${basePath}/${question.metadata.id}/explanation.md`,
+    question.explanation
+  );
+
+  // create folder for answers
+  fs.mkdirSync(`${basePath}/${question.metadata.id}/answers`);
+
+  // create folder for correct answers
+  fs.mkdirSync(`${basePath}/${question.metadata.id}/answers/correct`);
+
+  // write correct answers
+  question.correctAnswers.forEach((answer, index) => {
+    fs.writeFileSync(
+      `${basePath}/${question.metadata.id}/answers/correct/${index + 1}.md`,
+      answer
+    );
+  });
+
+  // create folder for incorrect answers
+  fs.mkdirSync(`${basePath}/${question.metadata.id}/answers/incorrect`);
+
+  // write incorrect answers
+  question.incorrectAnswers.forEach((answer, index) => {
+    fs.writeFileSync(
+      `${basePath}/${question.metadata.id}/answers/incorrect/${index + 1}.md`,
+      answer
+    );
+  });
+}
+
+function handleQuestions(path: string): void {
+  const metadata: QuestionMetadata[] = [];
+
+  // remove old build (if applicable)
+  if (fs.existsSync(`${path}/build`)) {
+    fs.rmSync(`${path}/build`, { recursive: true });
+  }
+
+  // create new empty build folder
+  fs.mkdirSync(`${path}/build`);
+
+  // read all files
+  const files = fs
+    .readdirSync(path)
+    .filter((file) => file != "build" && file.endsWith(".md"));
+
+  // processes and write all questions
+  files.forEach((file) => {
+    const result = readQuestion(`${path}/${file}`);
+    const processedQuestion = processQuestion(result);
+    writeQuestion(processedQuestion, `${path}/build`);
+    metadata.push(processedQuestion.metadata);
+  });
+
+  // write metadata file
+  fs.writeFileSync(`${path}/build/metadata.json`, JSON.stringify(metadata));
+}
+
+handleQuestions("./databricks-certified-data-engineer-associate");

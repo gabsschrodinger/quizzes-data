@@ -1,0 +1,1 @@
+The `OPTIMIZE` command merges small Parquet files into larger ones for better query performance. Other options like `VACUUM` and `REPAIR` are not relevant for compaction.

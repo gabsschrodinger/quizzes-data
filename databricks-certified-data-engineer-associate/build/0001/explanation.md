@@ -1,0 +1,1 @@
+Delta Lake supports time travel using the `VERSION AS OF` or `TIMESTAMP AS OF` clauses. In this case, `TIMESTAMP AS OF` is used with the date format.
