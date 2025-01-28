@@ -1,0 +1,1 @@
+What are the types of tables available on Databricks?

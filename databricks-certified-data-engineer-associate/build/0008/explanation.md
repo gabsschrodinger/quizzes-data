@@ -1,0 +1,1 @@
+External tables are no managed by Databricks. Altough their metadata is on Databricks, the actual data is not, so dropping an external table will not delete the underlying data files.

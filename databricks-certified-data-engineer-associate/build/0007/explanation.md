@@ -1,0 +1,1 @@
+External tables are no managed by Databricks. Altough their metadata is on Databricks, the actual data is not, so its location must be specified using the `LOCATION` keyword.

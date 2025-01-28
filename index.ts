@@ -20,7 +20,10 @@ type QuestionMetadata = {
   amountIncorrect: number;
 };
 
-function getMetadataFromMDContent(content: string[]): QuestionMetadata {
+function getMetadataFromMDContent(
+  content: string[],
+  file: string
+): QuestionMetadata {
   const metadataSection = content.filter((section) =>
     section.startsWith("## Metadata")
   )[0];
@@ -47,7 +50,7 @@ function getMetadataFromMDContent(content: string[]): QuestionMetadata {
   }
 
   return {
-    id: metadataContent.id,
+    id: file.replace(".md", ""),
     topic: metadataContent.topic,
     subtopic: metadataContent.subtopic,
     amountCorrect: parseInt(metadataContent.amountCorrect),
@@ -132,9 +135,9 @@ function readQuestion(path: string): string[] {
   return fileContent.split(/\n## /);
 }
 
-function processQuestion(question: string[]): ProcessedQuestion {
+function processQuestion(question: string[], file: string): ProcessedQuestion {
   return {
-    metadata: getMetadataFromMDContent(question),
+    metadata: getMetadataFromMDContent(question, file),
     question: getQuestionFromMDContent(question),
     correctAnswers: getCorrectAnswers(question),
     incorrectAnswers: getIncorrectAnswers(question),
@@ -203,7 +206,7 @@ function handleQuestions(path: string): void {
   // processes and write all questions
   files.forEach((file) => {
     const result = readQuestion(`${path}/${file}`);
-    const processedQuestion = processQuestion(result);
+    const processedQuestion = processQuestion(result, file);
     writeQuestion(processedQuestion, `${path}/build`);
     metadata.push(processedQuestion.metadata);
   });

@@ -1,0 +1,1 @@
+Which type of Databricks table requires the `LOCATION` keyword?

@@ -1,0 +1,1 @@
+Databricks allows users to create two types of tables: managed and external tables. Managed tables have their data and metadata managed by Databricks, while external tables have only their metadata managed by Databricks.

@@ -1,0 +1,1 @@
+In a Databricks environment, dropping a table removes all the underlying data files from storage for which type of table?
